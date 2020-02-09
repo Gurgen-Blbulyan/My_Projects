@@ -1,0 +1,160 @@
+---
+title: "Bike sharing system research"
+author: "Gurgen Blbulyan"
+date: "10/17/2019"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+First of all let's see on which data I do research.
+I take a Capital Bikeshare company data ,which is bicycle sharing system in Washington D.C..
+
+To see what is contained data, let's do some tricks.
+```{r}
+bike<-read.csv("bikeshare.csv")
+str(bike)
+```
+As we see we have 17379 observations and 17 variables.
+Let's see what does our variables showe.
+
+instant: record index ,
+dteday : date ,
+season : season (1:winter, 2:spring, 3:summer, 4:fall) ,
+yr : year (0: 2011, 1:2012) ,
+mnth : month ( 1 to 12) ,
+hr : hour (0 to 23) ,
+holiday : weather day is holiday or not ,
+weekday : day of the week ,
+workingday : if day is neither weekend nor holiday is 1, otherwise is 0. ,
+weathersit : 
+-1: Clear, Few clouds, Partly cloudy, Partly cloudy 
+-2: Mist + Cloudy, Mist + Broken clouds, Mist + Few clouds, Mist 
+-3: Light Snow, Light Rain + Thunderstorm + Scattered clouds, Light Rain + Scattered clouds 
+-4: Heavy Rain + Ice Pallets + Thunderstorm + Mist, Snow + Fog ,
+temp : Normalized temperature in Celsius. The values are derived via (t-t_min)/(t_max-t_min), t_min=-8, t_max=+39,
+atemp: Normalized feeling temperature in Celsius. The values are derived via (t-t_min)/(t_max-t_min), t_min=-16, t_max=+50,
+hum: Normalized humidity. The values are divided to 100 (max) ,
+windspeed: Normalized wind speed. The values are divided to 67 (max) ,
+casual: count of casual users ,
+registered: count of registered users ,
+cnt: count of total rental bikes including both casual and registered 
+
+To make our data more compact let's drope some variables.
+
+```{r }
+bike$yr=NULL
+bike$dteday=NULL
+bike$holiday=NULL
+bike$temp=NULL
+bike$instant=NULL
+bike$casual=NULL
+bike$registered=NULL
+str(bike)
+```
+Now we have 10 variables now.
+
+Let's import some essential libraries.
+```{r echo=TRUE,comment=NULL}
+options(repos="https://cran.rstudio.com" )
+library(ggplot2)
+library(devtools)
+install_github("Avetik666/MartirosSaryan")
+install.packages("readbitmap")
+library(readbitmap)
+library(martirossaryan)
+```
+
+
+
+To color our plots in Saryans paintings colors, I create a theme
+```{r}
+getPalleteNames()
+getSaryanPallete("armenian-landscape")
+getSaryanPallete("armenia")
+t<-theme(axis.text= element_text(color =c("#E5B317" ,"#B3843D", "#98A4C2",
+                                          "#D2B4AF", "#C9B5CB", "#E4C7CF", 
+                                          "#CBA896", "#E0BB68" ,"#F9CDB4", "#8591A4")),
+         axis.title = element_text(color = "#7A4520"),legend.position='none')
+```
+Let's see in what season people rent more bikes.
+```{r}
+bike$season<-factor(bike$season)
+ggplot(bike,aes(x=season,y=cnt,color=season))+
+  geom_bar(stat="identity")+
+  scale_x_discrete(labels =c("Winter", "Spring", "Summer", "Fall"))+
+  labs(x="Seasons",y="Rental Bikes")+
+  scale_color_manual(values = c("#98A4C2", "#D2B4AF" ,"#C9B5CB" ,"#E4C7CF"))+
+  t
+```
+
+We see, that people rent more bike in the summer than winter.
+
+The next let's see what time does the people ride bike most.
+```{r}
+
+ggplot(bike,aes(x=hr,y=cnt))+
+  geom_bar(stat="identity",fill="#364F66",alpha=0.8)+
+  scale_x_continuous(breaks = 0:23)+
+  labs(x="Hour",y="Rental Bikes")+
+  t
+```
+We can conclude from this chart that people use the bikes the most whan they go home or to work.
+This company should have more bikes in that times to satisfy all clients.
+
+This data we can also use to analyse some weather features.
+
+```{r}
+ggplot(bike,aes(x="",y=windspeed))+
+  geom_boxplot(color="#3F372F",fill="#FCE2A1",outlier.alpha = 0.3,outlier.colour = "Red")+
+  scale_y_continuous(breaks = seq(0,1,0.05))+
+  ylab("Windspeed" )+xlab(NULL)+
+  t                                                             
+```
+For example from this boxplot we see that windspeeds higher than 0.45 are outliers and median is near 0.2.
+1st quartile is 0.1 and 3rd quartile is 0.25.
+
+The next plot shows that people don't rent bikes in extremal weather conditions.
+```{r}
+bike$weathersit<-factor(bike$weathersit)
+ggplot(bike,aes(x=weathersit,y=cnt,color=weathersit))+
+  geom_bar(stat = "identity")+
+  scale_color_manual(values = c("#D8B279", "#FCE2A1" ,"#8C8D77" ,"#FCC604"))+
+  labs(x="Weathersit",y="Rental Bikes")+
+  t
+```
+
+
+This one showes us that whan temperature rises, people rent more bikes.
+```{r}
+ggplot(bike,aes(x=atemp,y=cnt))+
+  geom_point(alpha=0.2,col="#668397")+
+  geom_smooth(method = "lm",se=T,color=1)+
+  labs(x='Temperature',y="Rental Bikes")+
+  t
+```
+But in this plot we see that when humidity rises, people start to rent fewer bikes.
+```{r}
+ggplot(bike,aes(x=hum,y=cnt))+
+  geom_point(alpha=0.2,col="#D8B279")+
+  geom_smooth(method = "lm",se=T,color=1)+
+  labs(x="Humidity",y='Rental Bikes')+
+  t
+```
+The next let's see if there is weekday effect.
+```{r}
+bike$weekday<-factor(bike$weekday)
+ggplot(bike,aes(x=weekday,y=cnt,color=weekday))+
+  geom_bar(stat = "identity")+
+  scale_color_manual(values=c("#804F15", "#F4B035" ,"#E89507" ,
+                              "#A5C7F3", "#4B3418" ,"#0C1514", "#F3C9A4"))+
+  scale_x_discrete(labels = c("Sunday","Monday", "Tuesday", "Wednesday", 
+                              "Thursday" ,"Friday", "Saturday"))+
+  labs(x="Weekday",y="Rental Bikes")+
+  t
+
+
+```
+We can conclude, that there is some weekday effect but it is very low.
+
